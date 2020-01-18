@@ -49,6 +49,13 @@ namespace MicroServiceApp.Azure_Blob_storage
                 throw e;
             }
         }
+         /// it is used for set the container permission to public
+        private static async Task SetPublicContainerPermissions(CloudBlobContainer container)
+        {
+            BlobContainerPermissions permissions = await container.GetPermissionsAsync();
+            permissions.PublicAccess = BlobContainerPublicAccessType.Container;
+            await container.SetPermissionsAsync(permissions);
+        }
         #region " Private "
 
         private readonly AzureBlobSettings settings;
