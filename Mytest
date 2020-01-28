@@ -1,0 +1,51 @@
+using System;
+using System.Diagnostics;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.DataMovement;
+using Microsoft.Azure.Storage.Blob;
+using System.Threading;
+using System.IO;
+
+namespace testapp
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //use stop watch to calculate the uploading time.
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            string storageConnectionString = "myconnectionstring";
+            CloudStorageAccount account = CloudStorageAccount.Parse(storageConnectionString);
+
+            CloudBlobClient blobClient = account.CreateCloudBlobClient();
+            CloudBlobContainer blobContainer = blobClient.GetContainerReference("mycontainer");
+            blobContainer.CreateIfNotExists();
+
+            // the file being uploaded is about 63MB in size
+            string source_path = @"C:\Users\User\Downloads\testimage.jpg";
+            Stream fs = File.OpenRead(source_path);
+            fs.Seek(0, SeekOrigin.Begin);
+            CloudBlockBlob destBlob = blobContainer.GetBlockBlobReference("mytestimage.jpg");
+           destBlob.Properties.ContentType = "image/jpeg";
+            TransferManager.Configurations.ParallelOperations = 5;
+            // Setup the transfer context and track the upload progress
+            SingleTransferContext context = new SingleTransferContext();
+            context.ProgressHandler = new Progress<TransferStatus>((progress) =>
+            {
+                Console.WriteLine("Bytes uploaded: {0}", progress.BytesTransferred);
+            });
+            // Upload a local blob
+            var task = TransferManager.UploadAsync(
+                fs, destBlob, null, context, CancellationToken.None);
+            task.Wait();
+
+            stopwatch.Stop();
+            Console.WriteLine($"it takes about {stopwatch.ElapsedMilliseconds} milliSeconds");
+
+            Console.WriteLine("the upload is completed");
+            Console.ReadLine();
+
+        }
+    }
+}
